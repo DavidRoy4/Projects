@@ -1,0 +1,52 @@
+library(readr)
+library(tidyverse)
+library(ggrepel)
+
+NBA_Tracking <- read.csv("R Projects//NBA//NBA_Tracking.csv")
+
+#Distance Run Per 36 on Def
+NBA_Tracking <- NBA_Tracking %>% mutate(Def_Dist_Per36 = ((Dist..Miles.Def / MIN) * 36))
+
+#Distance Run Per 36 on Off
+NBA_Tracking <- NBA_Tracking %>% mutate(Off_Dist_Per36 = ((Dist..Miles.Off / MIN) * 36))
+
+#Distance Run Per 36 Total
+NBA_Tracking <- NBA_Tracking %>% mutate(Dist_Per36 = (Off_Dist_Per36 + Def_Dist_Per36))
+
+#Distance Run Difference Between Off and Def
+NBA_Tracking <- NBA_Tracking %>% mutate(Dist_Diff_Per36 = (Off_Dist_Per36 - Def_Dist_Per36))
+
+ggplot(NBA_Tracking, aes(Off_Dist_Per36, Def_Dist_Per36)) + 
+  geom_point(aes(color = Avg.Speed)) + 
+  scale_color_gradient(low = "darkslategray1", high = "blue4") + 
+  xlim(1.4,1.6) + 
+  ylim(1, 1.6) + 
+  theme_classic() + 
+  labs(title = "Scatter Plot of Distances Per 36 Minutes", x = "Distance Traveled on Offense in Miles", y = "Distance Traveled on Defense in Miles", caption = "David Roycroft | Data from nba.com") + 
+  theme(plot.title = element_text(hjust = 0.5)) 
+ggsave("NBA_Tracking1.png")
+
+#Filter 
+NBA_filter <- NBA_Tracking %>% filter(MIN >= 12)
+ggplot(NBA_filter, aes(MIN, Avg.Speed)) + 
+  geom_point(aes(color = Dist_Per36), size = 2.5) +
+  theme_classic() + 
+  labs(title = "Scatter Plot of MPG vs Average Speed", x = "Minutes Per Game", y = "Average Speed", caption = "David Roycroft | Data from nba.com", color = "Total Distance") + 
+  geom_label_repel(aes(label = Player), nudge_x = -2, data = subset(NBA_filter, Player %in% c("James Harden", "Kawhi Leonard", "Stephen Curry", "Rudy Gobert", "Lebron James", "Trae Young", "Zion Williamson", "LeBron James"))) + 
+  theme(plot.title = element_text(hjust = 0.5)) 
+ggsave("NBA_Tracking2.png")
+
+ggplot(NBA_filter, aes(Dist_Per36, Dist_Diff_Per36)) + 
+  geom_point() + 
+  geom_label_repel(aes(label = Player), nudge_x = -0.1, data = subset(NBA_filter, Player %in% c("James Harden", "Trae Young", "Stephen Curry", "Rudy Gobert", "Zion Williamson", "Giannis Antetokounmpo", "T.J. Warren"))) + 
+  theme_classic() + 
+  labs(title = "NBA Tracking", x = "Total Distance Per 36 Minutes", y = "Off Distance - Def Distance", caption = "David Roycroft | Data from nba.com") + 
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggplot(NBA_filter, aes(Avg.Speed.Off, Avg.Speed.Def)) + 
+  geom_point() + 
+  geom_label_repel(aes(label = Player), nudge_x = -0.1, data = subset(NBA_filter, Player %in% c("James Harden", "Trae Young", "Stephen Curry", "Rudy Gobert", "Zion Williamson", "Giannis Antetokounmpo", "LeBron James"))) + 
+  theme_classic() + 
+  labs(title = "Scatter Plot of Average Speed", x = "Average Speed on Offense", y = "Average Speed on Defense", caption = "David Roycroft|Data from nba.com") + 
+  theme(plot.title = element_text(hjust = 0.5)) 
+ggsave("NBA_Tracking3.png")
