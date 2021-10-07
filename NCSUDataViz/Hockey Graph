@@ -1,0 +1,27 @@
+library(tidyverse)
+library(jpeg)
+library(extrafont)
+font_import()
+loadfonts(device = "win")
+
+data <- read_csv("Clean PWHPA Secret Dream Gap Tour - SportLogiq - PWHPA Secret Dream Gap Tour.csv")
+color <- read_csv("NC-State-Nova-Data-Viz-Challenge-2021-main\\PWHPA Team Colors.csv")
+
+rink <- readJPEG("half_rink_diagram.jpg")
+
+data <- data %>% mutate(oz_pass_pct = (successful_oz_passes / oz_pass_attempts) * 100)
+
+plot_data <- data %>% group_by(team) %>% summarise(mean = mean(oz_pass_pct, na.rm = TRUE))
+
+total <- left_join(plot_data, color)
+
+
+ggplot(total, aes(x = mean, y = team, fill = primary)) + 
+  annotation_raster(rink, xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Inf) +
+  geom_dotplot(binaxis = "y", dotsize = 4, col = "black", stroke = 3) + 
+  labs(title = "Successful Passes in Offensive Zone by Team", x = "Succesful Passes %", y = "", caption = "Data Viz by David Roycroft & Billy Fryer | Data from PWHPA and Sportlogiq") + 
+  theme_classic() + 
+  theme(legend.position = "none", plot.title = element_text(hjust = 0.5), axis.text.y = element_text(size = 15), text=element_text(family="TT Courier New")) + 
+  xlim(50, 70) + 
+  scale_y_discrete(labels = c('Toronto','New Hampshire','Montreal', 'Minnesota', 'Calgary')) + 
+  geom_text(aes(label = round(mean, digits = 1), hjust = -0.5, size = 2))
