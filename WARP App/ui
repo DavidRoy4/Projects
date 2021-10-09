@@ -1,0 +1,31 @@
+library(shiny)
+library(DT)
+
+library(readr)
+library(tidyverse)
+
+#Reading Team Data
+Total_Set <- read.csv("TotalSet.csv")
+Total_NBA <- read.csv("TotalNBA.csv")
+
+# Define UI for application that draws a histogram
+shinyUI(fluidPage(
+
+    # Application title
+    titlePanel("NBA Data"),
+
+    # Sidebar with a slider input for number of bins
+    sidebarLayout(
+        sidebarPanel(
+            selectInput("Teams", "Select A Team", unique(Total_NBA$Team), multiple = FALSE),
+            checkboxInput("Raw", "Display Data Per Million Dollars", value = FALSE),
+            checkboxGroupInput("Stat", "Select A Stat", choices = c("WARP" = "WARP", "PER" = "PER", "WS" = "WS", "BPM" = "BPM", "VORP" = "VORP")),
+        ),
+
+        # Show a plot of the generated distribution
+        mainPanel(
+            DT::dataTableOutput("data_table"), 
+            DT::dataTableOutput("Total"),
+        )
+    )
+))
