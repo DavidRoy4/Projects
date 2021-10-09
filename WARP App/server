@@ -1,0 +1,114 @@
+library(shiny)
+library(forestmangr)
+
+Hawks_data <- read_csv("Atlanta Hawks Data/Hawks_adv.csv")
+Celtics_data <- read_csv("Boston Celtics Data/Celtics_adv.csv")
+Nets_data <- read_csv("Brooklyn Nets Data/Nets_adv.csv")
+Hornets_data <- read_csv("Charlotte Hornets Data/Hornets_adv.csv")
+Bulls_data <- read_csv("Chicago Bulls Data/Bulls_adv.csv")
+Cavs_data <- read_csv("Cleveland Cavaliers Data/Cavs_adv.csv")
+Mavs_data <- read_csv("Dallas Mavericks Data/Mavs_adv.csv")
+Nuggets_data <- read_csv("Denver Nuggets Data/Nuggets_adv.csv")
+Pistons_data <- read_csv("Detroit Pistons Data/Pistons_adv.csv")
+Warriors_data <- read_csv("Golden State Warriors Data/Warriors_adv.csv")
+Rockets_data <- read_csv("Houston Rockets Data/Rockets_adv.csv")
+Pacers_data <- read_csv("Indiana Pacers Data/Pacers_adv.csv")
+Clippers_data <- read_csv("LA Clippers Data/Clippers_adv.csv")
+Lakers_data <- read_csv("LA Lakers Data/Lakers_adv.csv")
+Grizzlies_data <- read_csv("Memphis Grizzlies Data/Grizzlies_adv.csv")
+Heat_data <- read_csv("Miami Heat Data/Heat_adv.csv")
+Bucks_data <- read_csv("Milwaukee Bucks Data/Bucks_adv.csv")
+Timberwolves_data <- read.csv("Minnesota Timberwolves Data/Timberwolves_adv.csv")
+Pelicans_data <- read_csv("New Orleans Pelicans Data/Pelicans_adv.csv")
+Knicks_data <- read_csv("New York Knicks Data/Knicks_adv.csv")
+Thunder_data <- read.csv("Oklahoma City Thunder Data/Thunder_adv.csv")
+Magic_data <- read_csv("Orlando Magic Data/Magic_adv.csv")
+Phil_data <- read_csv("Philadelphia 76ers Data/76ers_adv.csv")
+Suns_data <- read.csv("Phoenix Suns Data/Suns_adv.csv")
+Trailblazers_data <- read_csv("Portland Trailblazers Data/Trailblazers_adv.csv")
+Kings_data <- read.csv("Sacramento Kings Data/Kings_adv.csv")
+Spurs_data <- read_csv("San Antonio Spurs Data/Spurs_adv.csv")
+Raptors_data <- read_csv("Toronto Raptors Data/Raptors_adv.csv")
+Jazz_data <- read.csv("Utah Jazz Data/Jazz_adv.csv")
+Wizards_data <- read_csv("Washington Wizards Data/Wizards_adv.csv")
+
+Total_Set <- read.csv("TotalSet.csv")
+Total_NBA <- read.csv("TotalNBA.csv")
+
+# Define server logic required to draw a histogram
+shinyServer(function(input, output){
+    output$data_table <- renderDataTable({
+        if (input$Raw == TRUE){
+            tab1 <- filter(Total_Set, Team == input$Teams)
+        if ("_Per" %in% colnames(tab1)) {
+            tab1 <- tab1 %>% mutate_all(funs(ifelse(is.na(.), 0, .)))
+        }
+            tab1 <- rename(tab1, WARP1 = WARP, PER1 = PER, BPM1 = BPM, VORP1 = VORP, WS1 = WS)
+            tab1 <- rename(tab1, WARP = WARP_Per, PER = PER_Mil, BPM = BPM_Per, VORP = VORP_Per, WS = WS_Per)
+            tab1 <- mutate(tab1, Salary_in_Millions = paste(round(tab1$Salary_2019_to_20 / 1e6, 1), "M"))
+            tab1 <- select(tab1, Player, Team, Salary_in_Millions, input$Stat)
+            round_df(tab1, digits = 2)
+        }else{
+            tab1 <- filter(Total_Set, Team == input$Teams) 
+            tab1 <- mutate(tab1, Salary_in_Millions = paste(round(tab1$Salary_2019_to_20 / 1e6, 1), "M"))
+            tab1 <- select(tab1, Player, Team, Salary_in_Millions, input$Stat)
+            round_df(tab1, digits = 2) 
+        }
+        
+    })
+    output$Total <- renderDataTable({
+        if (input$Raw == TRUE) {
+            tab2 <- filter(Total_Set, Team == input$Teams) 
+            tab2 <- select(tab2, Player, WARP_Per, PER_Mil, BPM_Per, VORP_Per, WS_Per)
+            WARP <- "WARP" %in% input$Stat
+            PER <- "PER" %in% input$Stat
+            BPM <- "BPM" %in% input$Stat
+            VORP <- "VORP" %in% input$Stat
+            WS <- "WS" %in% input$Stat
+            Team <- input$Teams
+            Total_Stat <- data.frame(Team)
+            if (WARP == TRUE){
+                Total_Stat <- mutate(Total_Stat, WARP_Total = sum(tab2$WARP_Per, na.rm = TRUE))
+            } 
+            if (PER == TRUE) {
+                Total_Stat <- mutate(Total_Stat, PER_Avg = mean(tab2$PER_Mil, na.rm = TRUE))
+            }
+            if (WS == TRUE){
+                Total_Stat <- mutate(Total_Stat, WS_Total = sum(tab2$WS_Per, na.rm = TRUE))
+            }
+            if (BPM == TRUE){
+                Total_Stat<- mutate(Total_Stat, BPM_Total = sum(tab2$BPM_Per, na.rm = TRUE))
+            }
+            if (VORP == TRUE){
+                Total_Stat <- mutate(Total_Stat, VORP_Total = sum(tab2$VORP_Per, na.rm = TRUE))
+            }
+            round_df(Total_Stat, digits = 2)
+        }else{
+            tab2 <- filter(Total_Set, Team == input$Teams) 
+            tab2 <- select(tab2, Player, WARP, PER, BPM, VORP, WS)
+            WARP <- "WARP" %in% input$Stat
+            PER <- "PER" %in% input$Stat
+            BPM <- "BPM" %in% input$Stat
+            VORP <- "VORP" %in% input$Stat
+            WS <- "WS" %in% input$Stat
+            Team <- input$Teams
+            Total_Stat <- data.frame(Team)
+            if (WARP == TRUE){
+                Total_Stat <- mutate(Total_Stat, WARP_Total = sum(tab2$WARP, na.rm = TRUE))
+            } 
+            if (PER == TRUE) {
+                Total_Stat <- mutate(Total_Stat, PER_Avg = mean(tab2$PER, na.rm = TRUE))
+            }
+            if (WS == TRUE){
+                Total_Stat <- mutate(Total_Stat, WS_Total = sum(tab2$WS, na.rm = TRUE))
+            }
+            if (BPM == TRUE){
+                Total_Stat<- mutate(Total_Stat, BPM_Total = sum(tab2$BPM, na.rm = TRUE))
+            }
+            if (VORP == TRUE){
+                Total_Stat <- mutate(Total_Stat, VORP_Total = sum(tab2$VORP, na.rm = TRUE))
+            }
+            round_df(Total_Stat, digits = 2)
+        }
+    })
+})
