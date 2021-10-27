@@ -1,0 +1,40 @@
+Complete_Set <- read.csv("CompleteSet.csv")
+
+# Defining the Server Logic
+shinyServer(function(input, output){
+  #Outputting Player Stats
+  output$Players <- renderDataTable({
+    table_test <- filter(Complete_Set, Pos == input$Position)
+    table_test <- select(table_test, Player, Team, WARP, PER, BPM, VORP, WS)
+  })
+  
+  output$Team <- renderDataTable({
+    Set <- select(Complete_Set, Player, Team, WARP, PER, BPM, VORP, WS)
+    team_final <- setNames(data.frame(matrix(NA, 1, 7)), c("Player", "Team", "WARP", "PER", "BPM", "VORP", "WS"))
+    if (input$search1 %in% Set$Player){
+      PG <- subset(Set, Player == input$search1)
+      team_final <- rbind(team_final, PG)
+    } 
+    if (input$search2 %in% Set$Player){
+      SG <- subset(Set, Player == input$search2)
+      team_final <- rbind(team_final, SG)
+    } 
+    if (input$search3 %in% Set$Player){
+      SF <- subset(Set, Player == input$search3)
+      team_final <- rbind(team_final, SF)
+    } 
+    if (input$search4 %in% Set$Player){
+      PF <- subset(Set, Player == input$search4)
+      team_final <- rbind(team_final, PF)
+    } 
+    if (input$search5 %in% Set$Player){
+      C <- subset(Set, Player == input$search5)
+      team_final <- rbind(team_final, C)
+    }
+        totals <- c("Stat", "Totals", sum(team_final$WARP, na.rm = TRUE), sum(team_final$PER, na.rm = TRUE), sum(team_final$BPM, na.rm = TRUE), sum(team_final$VORP, na.rm = TRUE), sum(team_final$WS, na.rm = TRUE))
+        team_final <- rbind(team_final, totals)
+
+  })
+  
+
+    }) 
