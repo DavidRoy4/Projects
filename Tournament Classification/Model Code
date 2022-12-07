@@ -1,0 +1,162 @@
+#NCAA Tournament Classifiers
+library(tidyverse)
+library(MASS)
+library(caret)
+
+##Data Import and Cleaning
+
+#Import
+NCAA_2015 <- read_csv(".\\Documents\\R Projects\\NCAA\\cbb15.csv")
+NCAA_2016 <- read_csv(".\\Documents\\R Projects\\NCAA\\cbb16.csv")
+NCAA_2017 <- read_csv(".\\Documents\\R Projects\\NCAA\\cbb17.csv")
+NCAA_2018 <- read_csv(".\\Documents\\R Projects\\NCAA\\cbb18.csv")
+NCAA_2019 <- read_csv(".\\Documents\\R Projects\\NCAA\\cbb19.csv")
+
+#Cleaning
+NCAA_2015$Tournament <- ifelse(is.na(NCAA_2015$SEED) == FALSE, 1, 0)
+NCAA_2016$Tournament <- ifelse(NCAA_2016$Tournament == "Yes", 1, 0)
+NCAA_2017$Tournament <- ifelse(NCAA_2017$Tournament == "Yes", 1, 0)
+NCAA_2018$Tournament <- ifelse(NCAA_2018$Tournament == "Yes", 1, 0)
+NCAA_2019$Tournament <- ifelse(NCAA_2019$Tournament == "Yes", 1, 0)
+
+
+NCAA_Total <- rbind(NCAA_2015, NCAA_2016)
+NCAA_Total <- rbind(NCAA_Total, NCAA_2017)
+NCAA_Total <- rbind(NCAA_Total, NCAA_2018)
+NCAA_Total <- rbind(NCAA_Total, NCAA_2019)
+
+
+NCAA_Filter <- subset(NCAA_Total, select = -c(TEAM,SEED, POSTSEASON)) %>% rename("TWOP_O" = `2P_O`, 
+                                                                     "THRP_O" = `3P_O`, 
+                                                                     "TWOP_D" = `2P_D`, 
+                                                                     "THRP_D" = `3P_D`)
+NCAA_Filter$Tournament <- as.factor(NCAA_Filter$Tournament)
+
+#Test Data
+NCAA_2021 <- read_csv(".\\Documents\\R Projects\\NCAA\\cbb21.csv")
+NCAA_2021_filter <- subset(NCAA_2021, select = -c(TEAM,SEED,Recruiting)) %>% rename("TWOP_O" = `2P_O`, 
+                                                                  "THRP_O" = `3P_O`, 
+                                                                  "TWOP_D" = `2P_D`, 
+                                                                  "THRP_D" = `3P_D`)
+NCAA_2021_filter$Tournament <- ifelse(NCAA_2021_filter$Tournament == "Yes", 1, 0)
+NCAA_2021_filter$Tournament <- as.factor(NCAA_2021_filter$Tournament)
+
+#Logistic Regression
+mod1 <- glm(Tournament~., data = NCAA_Filter, family = "binomial")
+summary(mod1)
+extra = predict(mod1,NCAA_2021_filter,type="response")
+table(extra>0.5,NCAA_2021_filter$Tournament)
+
+fit0 <- glm(Tournament~1, data = NCAA_Filter, family = "binomial")
+
+foo = stepAIC(fit0,direction="both",
+              scope=list(upper=mod1,lower=fit0))
+fit.best = glm(formula(foo),data=NCAA_Filter,family = "binomial")
+summary(fit.best)
+
+predict.test = predict(fit.best,NCAA_2021_filter,type="response")
+LR_table <- table(predict.test>0.5,NCAA_2021_filter$Tournament)
+sum(diag(LR_table)) / sum(LR_table)
+
+#Decision Trees
+library(rpart)
+library(rpart.plot)
+
+fit <- rpart(Tournament~., data = NCAA_Filter, method = 'class')
+rpart.plot(fit)
+
+predict <- predict(fit, NCAA_2021_filter, type = 'class')
+
+confusionMatrix(predict, NCAA_2021_filter$Tournament, mode="everything")
+
+#Random Forest
+library(randomForest)
+
+rf <- randomForest(Tournament~., data=NCAA_Filter, importance = TRUE)
+varImpPlot(rf)
+
+pred <- predict(rf, newdata = NCAA_2021_filter)
+
+confusionMatrix(pred, NCAA_2021_filter$Tournament, mode="everything")
+
+
+#Results 
+ModNames <- c("Logistic Regression","Decision Tree", "Random Forest")
+Accuracy <- c(0.8472622,0.9337176,0.9365994)
+
+Final <- data.frame(ModNames, Accuracy)
+names(Final) <- c("Model", "Accuracy")
+
+ggplot(Final, aes(x=Model, y = Accuracy, fill = Model)) + 
+  geom_col() + 
+  labs(title = "2021 NCAA Tournament Team Prediction Accuracy by Model", 
+       x = "Model Type", 
+       y = "Model Accuracy (in %)") + 
+  geom_text(aes(label = round(Accuracy, digits = 3)), vjust = -0.5) +
+  scale_fill_manual(values=c("#9933FF",
+                             "#33FFFF",
+                             "red")) +
+  theme(plot.title = element_text(hjust=0.5), 
+        legend.position = "none")
+
+##Random Sampling of the Data
+Data_Final <- rbind(NCAA_Filter, NCAA_2021_filter)
+
+shuffle_index <- sample(1:nrow(Data_Final))
+Data_Final_Filter <- Data_Final[shuffle_index, ]
+split <- 0.7* length(Data_Final_Filter$CONF)
+
+
+Final_Train <- Data_Final_Filter[1:round(split), ]
+Final_Test <- Data_Final_Filter[round(split):length(Data_Final_Filter$CONF), ]
+
+
+#Logistic Regression
+mod1 <- glm(Tournament~., data = Final_Train, family = "binomial")
+summary(mod1)
+extra = predict(mod1,NCAA_2021_filter,type="response")
+table(extra>0.5,NCAA_2021_filter$Tournament)
+
+fit0 <- glm(Tournament~1, data = Final_Train, family = "binomial")
+
+foo = stepAIC(fit0,direction="both",
+              scope=list(upper=mod1,lower=fit0))
+fit.best = glm(formula(foo),data=Final_Train,family = "binomial")
+summary(fit.best)
+
+predict.test = predict(fit.best,Final_Test,type="response")
+LR_table <- table(predict.test>0.5,Final_Test$Tournament)
+sum(diag(LR_table)) / sum(LR_table)
+
+#Decision Trees
+fit <- rpart(Tournament~., data = Final_Train, method = 'class')
+rpart.plot(fit)
+
+predict <- predict(fit, Final_Test, type = 'class')
+
+confusionMatrix(predict, Final_Test$Tournament, mode="everything")
+
+#Random Forest
+rf <- randomForest(Tournament~., data=Final_Train, importance = TRUE)
+varImpPlot(rf)
+
+pred <- predict(rf, newdata = Final_Test)
+
+confusionMatrix(pred, Final_Test$Tournament, mode="everything")
+
+#Results 
+Accuracy2 <- c(0.9050633,0.9193038,0.9272152)
+
+Final <- Final %>% mutate(Acc2 = Accuracy2)
+
+ggplot(Final, aes(x=Model, y = Acc2, fill = Model)) + 
+  geom_col() + 
+  labs(title = "2021 NCAA Tournament Team Prediction Accuracy by Model", 
+       x = "Model Type", 
+       y = "Model Accuracy (in %)") + 
+  geom_text(aes(label = round(Acc2, digits = 3)), vjust = -0.5) +
+  scale_fill_manual(values=c("#9933FF",
+                             "#33FFFF",
+                             "red")) +
+  theme(plot.title = element_text(hjust=0.5), 
+        legend.position = "none")
